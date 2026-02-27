@@ -1,11 +1,20 @@
 services:
   - type: web
-    name: incentivos-app-v2-1
-    env: docker
+    name: incentivos-v2-1-node
+    env: node
     plan: starter
-    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: SELL_ACCESS_TOKEN
         sync: false
+      - key: SELL_BASE_URL
+        value: https://api.getbase.com
       - key: INCENTIVOS_CONFIG
         value: config/incentivos_config.json
+      - key: SELL_PER_PAGE
+        value: 100
+      - key: SELL_TIMEOUT_S
+        value: 30
+      - key: PORT
+        value: 8000

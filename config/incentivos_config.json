@@ -1,24 +1,20 @@
 {
   "pipeline_id": 1290779,
   "stage_ids": [10693256, 35531166],
-
-  "fecha_cirugia_field_id": "FECHA DE CIRUGÍA",
-
-  "collaborator_field_ids": {
+  "fecha_cirugia_field_name": "FECHA DE CIRUGÍA",
+  "collaborator_field_names": {
     "c1": "Colaborador1",
     "c2": "Colaborador2",
     "c3": "Colaborador3"
   },
-
   "bars": {
-    "1": {"field_id": "ComisionBAR1", "min": 1, "max": 8001, "amount": 0},
-    "2": {"field_id": "ComisionBAR2", "min": 2, "max": 5002, "max_values": [5002, 8002], "amount": 0},
-    "3": {"field_id": "ComisionBAR3", "min": 3, "max": 5003, "amount": 0},
-    "4": {"field_id": "ComisionBAR4", "min": 4, "max": 9004, "amount": 0},
-    "5": {"field_id": "ComisionBAR5", "min": 5, "max": 6005, "amount": 0},
-    "6": {"field_id": "ComisionBAR6", "min": 6, "max": 6006, "amount": 0}
+    "1": {"field_name": "ComisionBAR1", "allowed": [1, 8001]},
+    "2": {"field_name": "ComisionBAR2", "allowed": [2, 5002, 8002]},
+    "3": {"field_name": "ComisionBAR3", "allowed": [3, 5003]},
+    "4": {"field_name": "ComisionBAR4", "allowed": [4, 9004]},
+    "5": {"field_name": "ComisionBAR5", "allowed": [5, 6005]},
+    "6": {"field_name": "ComisionBAR6", "allowed": [6, 6006]}
   },
-
-  "extras_enabled": true,
-  "timezone": "America/Sao_Paulo"
+  "timezone": "America/Sao_Paulo",
+  "notes": "Monto en pesos = código del BAR. Si falta un BAR se omite. Filtra por FECHA DE CIRUGÍA dentro del mes."
 }
