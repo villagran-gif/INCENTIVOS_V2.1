@@ -6,11 +6,12 @@
   <title>INCENTIVOS V2.1</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 980px; }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     input { padding: 10px; font-size: 14px; }
     button { padding: 10px 12px; font-size: 14px; cursor: pointer; }
     pre { background: #0b1020; color: #e8eefc; padding: 14px; border-radius: 10px; overflow: auto; }
     small { color: #666; }
+    .pill { display:inline-block; padding: 4px 10px; border:1px solid #ddd; border-radius: 999px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -19,7 +20,9 @@
 
   <div class="row">
     <button id="btnHealth">/health</button>
+    <button id="btnReady">/ready</button>
     <button id="btnConfig">/api/config</button>
+    <span id="readyPill" class="pill">ready: (sin chequear)</span>
   </div>
 
   <hr />
@@ -32,8 +35,10 @@
 
   <h3>Mensual</h3>
   <div class="row">
-    <input id="ym" placeholder="YYYY-MM (ej: 2026-02)" size="18" />
+    <!-- type=month en iPhone abre selector nativo y devuelve YYYY-MM -->
+    <input id="ym" type="month" placeholder="YYYY-MM (ej: 2026-02)" size="18" />
     <button id="btnMonth">Calcular Mes</button>
+    <small>Tip: pega “2026/0201-2026/02/28” y tomo el mes.</small>
   </div>
 
   <h3>Salida</h3>
@@ -41,6 +46,8 @@
 
   <script>
     const out = document.getElementById('out');
+    const readyPill = document.getElementById('readyPill');
+
     const show = (x) => out.textContent = typeof x === 'string' ? x : JSON.stringify(x, null, 2);
 
     async function getJson(url) {
@@ -55,8 +62,68 @@
       }
     }
 
+    function normalizeYm(input) {
+      const s = String(input || '').trim();
+      if (!s) return null;
+
+      // Caso ideal
+      const m0 = s.match(/^(\d{4})-(\d{2})$/);
+      if (m0) return `${m0[1]}-${m0[2]}`;
+
+      // Acepta YYYY/MM, YYYY/MM/DD, YYYY-MM-DD, rangos y variantes
+      // Tomamos los primeros 4 dígitos como año y los siguientes 2 como mes.
+      const m1 = s.match(/^(\d{4})\D?(\d{2})/);
+      if (m1) {
+        const year = Number(m1[1]);
+        const month = Number(m1[2]);
+        if (year >= 1900 && month >= 1 && month <= 12) {
+          return `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}`;
+        }
+      }
+
+      // Caso tipo 2026/0201...
+      const m2 = s.match(/^(\d{4})\D(\d{4})/);
+      if (m2) {
+        const year = Number(m2[1]);
+        const month = Number(String(m2[2]).slice(0,2));
+        if (year >= 1900 && month >= 1 && month <= 12) {
+          return `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}`;
+        }
+      }
+
+      return null;
+    }
+
+    function setDefaultMonth() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const el = document.getElementById('ym');
+      if (!el.value) el.value = `${y}-${m}`;
+    }
+
+    async function checkReady() {
+      try {
+        const r = await fetch('/ready');
+        if (r.ok) {
+          readyPill.textContent = 'ready: YES';
+          readyPill.style.borderColor = '#b7e1c1';
+          return;
+        }
+        readyPill.textContent = 'ready: NO (inicializando cache)';
+        readyPill.style.borderColor = '#ffd8a8';
+      } catch {
+        readyPill.textContent = 'ready: ERROR';
+        readyPill.style.borderColor = '#ffb3b3';
+      }
+    }
+
     document.getElementById('btnHealth').onclick = async () => {
       try { show(await getJson('/health')); } catch (e) { show(e); }
+    };
+
+    document.getElementById('btnReady').onclick = async () => {
+      try { show(await getJson('/ready')); } catch (e) { show(e); }
     };
 
     document.getElementById('btnConfig').onclick = async () => {
@@ -70,10 +137,14 @@
     };
 
     document.getElementById('btnMonth').onclick = async () => {
-      const ym = document.getElementById('ym').value.trim();
-      if (!ym) return show('Falta YYYY-MM');
+      const raw = document.getElementById('ym').value.trim();
+      const ym = normalizeYm(raw);
+      if (!ym) return show('Formato inválido. Usa YYYY-MM (ej: 2026-02)');
       try { show(await getJson(`/api/monthly/${encodeURIComponent(ym)}`)); } catch (e) { show(e); }
     };
+
+    setDefaultMonth();
+    checkReady();
   </script>
 </body>
 </html>
