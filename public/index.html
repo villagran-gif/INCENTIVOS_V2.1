@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>INCENTIVOS V2.1</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 980px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    input { padding: 10px; font-size: 14px; }
+    button { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+    pre { background: #0b1020; color: #e8eefc; padding: 14px; border-radius: 10px; overflow: auto; }
+    small { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>INCENTIVOS V2.1</h1>
+  <p><small>Node Web Service (Render) + Zendesk Sell</small></p>
+
+  <div class="row">
+    <button id="btnHealth">/health</button>
+    <button id="btnConfig">/api/config</button>
+  </div>
+
+  <hr />
+
+  <h3>Deal</h3>
+  <div class="row">
+    <input id="dealId" placeholder="Deal ID (ej: 193851769)" size="28" />
+    <button id="btnDeal">Consultar Deal</button>
+  </div>
+
+  <h3>Mensual</h3>
+  <div class="row">
+    <input id="ym" placeholder="YYYY-MM (ej: 2026-02)" size="18" />
+    <button id="btnMonth">Calcular Mes</button>
+  </div>
+
+  <h3>Salida</h3>
+  <pre id="out">Listo.</pre>
+
+  <script>
+    const out = document.getElementById('out');
+    const show = (x) => out.textContent = typeof x === 'string' ? x : JSON.stringify(x, null, 2);
+
+    async function getJson(url) {
+      const r = await fetch(url);
+      const t = await r.text();
+      try {
+        const j = JSON.parse(t);
+        if (!r.ok) throw j;
+        return j;
+      } catch (e) {
+        throw { status: r.status, body: t };
+      }
+    }
+
+    document.getElementById('btnHealth').onclick = async () => {
+      try { show(await getJson('/health')); } catch (e) { show(e); }
+    };
+
+    document.getElementById('btnConfig').onclick = async () => {
+      try { show(await getJson('/api/config')); } catch (e) { show(e); }
+    };
+
+    document.getElementById('btnDeal').onclick = async () => {
+      const id = document.getElementById('dealId').value.trim();
+      if (!id) return show('Falta Deal ID');
+      try { show(await getJson(`/api/deals/${encodeURIComponent(id)}`)); } catch (e) { show(e); }
+    };
+
+    document.getElementById('btnMonth').onclick = async () => {
+      const ym = document.getElementById('ym').value.trim();
+      if (!ym) return show('Falta YYYY-MM');
+      try { show(await getJson(`/api/monthly/${encodeURIComponent(ym)}`)); } catch (e) { show(e); }
+    };
+  </script>
+</body>
+</html>
