@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 
 def _is_retryable(exc: Exception) -> bool:
+    """Retry only on transient failures."""
     if isinstance(exc, httpx.TimeoutException):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
@@ -16,7 +17,13 @@ def _is_retryable(exc: Exception) -> bool:
 
 
 class SellClient:
-    def __init__(self, base_url: str, token: str, timeout_s: float = 30.0, search_base_url: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        timeout_s: float = 30.0,
+        search_base_url: Optional[str] = None,
+    ):
         # Core API (v2)
         self.base_url = base_url.rstrip("/")
         # Search API (v3) suele vivir en el mismo host
@@ -38,7 +45,7 @@ class SellClient:
             self._client = None
 
     @retry(
-        retry=retry_if_exception_type(Exception).filter(_is_retryable),
+        retry=retry_if_exception(_is_retryable),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
         stop=stop_after_attempt(6),
         reraise=True,
@@ -53,7 +60,7 @@ class SellClient:
         return resp.json()
 
     @retry(
-        retry=retry_if_exception_type(Exception).filter(_is_retryable),
+        retry=retry_if_exception(_is_retryable),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
         stop=stop_after_attempt(6),
         reraise=True,
@@ -71,11 +78,17 @@ class SellClient:
         resp.raise_for_status()
         return resp.json()
 
+    # ---------------------------
+    # Core API (v2)
+    # ---------------------------
+
     async def get_deal(self, deal_id: int) -> Dict[str, Any]:
         payload = await self._get(f"/v2/deals/{deal_id}")
         return payload.get("data") or {}
 
     async def list_deals_by_stage(self, stage_id: int, per_page: int = 100) -> List[Dict[str, Any]]:
+        """List deals in a stage. Sell v2 endpoints typically cap per_page at 100."""
+        per_page = min(int(per_page), 100)
         out: List[Dict[str, Any]] = []
         page = 1
         while True:
@@ -91,7 +104,7 @@ class SellClient:
         return out
 
     # ---------------------------
-    # Search API (v3)
+    # Search API (v3) - opcional
     # ---------------------------
 
     async def get_deal_custom_fields_mapping(self) -> List[Dict[str, Any]]:
@@ -108,8 +121,17 @@ class SellClient:
         items = payload.get("items") or []
         return [i.get("data") or {} for i in items]
 
-    async def search_deals(self, *, filter_obj: Dict[str, Any], projection: List[str], per_page: int = 200) -> List[Dict[str, Any]]:
-        """Busca deals usando Search API v3 con paginación por cursor."""
+    async def search_deals(
+        self,
+        *,
+        filter_obj: Dict[str, Any],
+        projection: List[str],
+        per_page: int = 200,
+    ) -> List[Dict[str, Any]]:
+        """Busca deals usando Search API v3 con paginación por cursor.
+
+        Nota: algunas cuentas/entornos pueden responder 403. En ese caso usa v2.
+        """
 
         out: List[Dict[str, Any]] = []
         cursor: Optional[str] = None
@@ -121,7 +143,7 @@ class SellClient:
                     "filter": filter_obj,
                 },
                 "hits": True,
-                "per_page": per_page,
+                "per_page": min(int(per_page), 200),
             }
             if cursor:
                 data["cursor"] = cursor
@@ -130,9 +152,6 @@ class SellClient:
             payload = await self._post_search("/v3/deals/search", body)
 
             single = (payload.get("items") or [{}])[0]
-            if not single.get("successful", True):
-                raise RuntimeError(f"Search API returned unsuccessful response: {single}")
-
             items = single.get("items") or []
             out.extend([i.get("data") or {} for i in items])
 
