@@ -1,0 +1,24 @@
+{
+  "pipeline_id": 1290779,
+  "stage_ids": [10693256, 35531166],
+
+  "fecha_cirugia_field_id": "FECHA DE CIRUGÍA",
+
+  "collaborator_field_ids": {
+    "c1": "Colaborador1",
+    "c2": "Colaborador2",
+    "c3": "Colaborador3"
+  },
+
+  "bars": {
+    "1": {"field_id": "ComisionBAR1", "min": 1, "max": 8001, "amount": 0},
+    "2": {"field_id": "ComisionBAR2", "min": 2, "max": 5002, "max_values": [5002, 8002], "amount": 0},
+    "3": {"field_id": "ComisionBAR3", "min": 3, "max": 5003, "amount": 0},
+    "4": {"field_id": "ComisionBAR4", "min": 4, "max": 9004, "amount": 0},
+    "5": {"field_id": "ComisionBAR5", "min": 5, "max": 6005, "amount": 0},
+    "6": {"field_id": "ComisionBAR6", "min": 6, "max": 6006, "amount": 0}
+  },
+
+  "extras_enabled": true,
+  "timezone": "America/Sao_Paulo"
+}

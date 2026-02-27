@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: incentivos-app-v2-1
+    env: docker
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: SELL_ACCESS_TOKEN
+        sync: false
+      - key: INCENTIVOS_CONFIG
+        value: config/incentivos_config.json
