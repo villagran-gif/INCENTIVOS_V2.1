@@ -17,8 +17,6 @@ services:
         value: 100
       - key: SELL_TIMEOUT_S
         value: 30
-      - key: PORT
-        value: 8000
 
       # Refresco del cache mensual (cada 10 minutos)
       - key: MONTHLY_REFRESH_EVERY_S
