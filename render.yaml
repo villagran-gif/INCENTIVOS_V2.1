@@ -5,6 +5,7 @@ services:
     plan: starter
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: SELL_ACCESS_TOKEN
         sync: false
@@ -18,3 +19,17 @@ services:
         value: 30
       - key: PORT
         value: 8000
+
+      # Refresco del cache mensual (cada 10 minutos)
+      - key: MONTHLY_REFRESH_EVERY_S
+        value: 600
+      - key: MONTHLY_PREFETCH_MONTHS
+        value: 2
+      - key: MONTHLY_CACHE_MAX_MONTHS
+        value: 6
+      - key: MONTHLY_CACHE_MAX_AGE_S
+        value: 1200
+
+      # Cache simple del config JSON para evitar readFileSync en cada request
+      - key: CONFIG_CACHE_S
+        value: 30

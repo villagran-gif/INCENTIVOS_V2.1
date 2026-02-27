@@ -3,13 +3,27 @@ import express from 'express';
 
 import { loadConfig } from './config.js';
 import { createSellClient } from './sell.js';
-import { calcDeal, calcMonth } from './calc.js';
+import { calcDeal } from './calc.js';
+import { createMonthlyCache } from './monthlyCache.js';
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+// Cache mensual + job cada N segundos (default: 10 minutos)
+const monthlyCache = createMonthlyCache();
+monthlyCache.start();
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, monthly_cache: monthlyCache.getStatus() });
+});
+
+// Ready: 200 sólo si ya hubo al menos 1 refresh exitoso
+app.get('/ready', (req, res) => {
+  const st = monthlyCache.getStatus();
+  if (!st.last_refresh_at) return res.status(503).json({ ok: false, monthly_cache: st });
+  return res.json({ ok: true, monthly_cache: st });
+});
 
 app.get('/api/config', (req, res) => {
   try {
@@ -59,34 +73,15 @@ app.get('/api/deals/:dealId', async (req, res) => {
 
 app.get('/api/monthly/:yearMonth', async (req, res) => {
   const ym = String(req.params.yearMonth || '');
-  const m = ym.match(/^(\d{4})-(\d{2})$/);
-  if (!m) return res.status(400).json({ error: 'Formato inválido. Usa YYYY-MM' });
-
-  const year = Number(m[1]);
-  const month = Number(m[2]);
-
-  let cfg;
-  try {
-    cfg = loadConfig();
-  } catch (e) {
-    return res.status(500).json({ error: String(e?.message || e) });
-  }
 
   try {
-    const sell = createSellClient();
-    const perPage = Math.min(100, Number(process.env.SELL_PER_PAGE || '100'));
-
-    const dealsById = new Map();
-    for (const stageId of cfg.stage_ids || []) {
-      const list = await sell.listDealsByStage(stageId, perPage);
-      for (const d of list) {
-        if (d?.id != null) dealsById.set(Number(d.id), d);
-      }
-    }
-
-    const out = calcMonth(cfg, Array.from(dealsById.values()), year, month);
-    return res.json(out);
+    const result = await monthlyCache.getMonth(ym);
+    res.set('X-Cache', result.cache);
+    if (result.generated_at) res.set('X-Generated-At', result.generated_at);
+    return res.json(result.data);
   } catch (e) {
+    if (e?.code === 'BAD_YM') return res.status(400).json({ error: e.message });
+
     const status = e?.response?.status;
     const url = e?.config?.url;
     return res.status(502).json({
