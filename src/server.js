@@ -96,7 +96,11 @@ app.get('/api/monthly/:yearMonth', async (req, res) => {
 // Root -> UI
 app.get('/', (req, res) => res.sendFile('index.html', { root: 'public' }));
 
-const port = Number(process.env.PORT || '8000');
+const port = Number(process.env.PORT);
+if (!Number.isFinite(port)) {
+  throw new Error(`PORT inválido o no definido: ${process.env.PORT}`);
+}
+
 app.listen(port, '0.0.0.0', () => {
-  console.log(`INCENTIVOS Node escuchando en puerto ${port}`);
+  console.log(`INCENTIVOS Node escuchando en puerto ${port} (env PORT=${process.env.PORT})`);
 });
