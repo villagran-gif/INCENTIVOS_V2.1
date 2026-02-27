@@ -4,9 +4,8 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from datetime import timedelta
 
-from app.calculator import calc_month, month_bounds
+from app.calculator import calc_month
 from app.config import Settings, load_incentivos_config
 from app.sell_client import SellClient
 
@@ -30,67 +29,20 @@ async def main() -> int:
     settings = Settings()
     cfg = load_incentivos_config(settings.config_path)
 
-    start, end_excl = month_bounds(year, month)
-    end_inclusive = end_excl - timedelta(days=1)
+    if not cfg.stage_ids:
+        print("Config inválida: stage_ids vacío", file=sys.stderr)
+        return 2
 
-    async with SellClient(
-        settings.sell_base_url,
-        settings.sell_access_token,
-        settings.timeout_s,
-        search_base_url=settings.sell_search_base_url,
-    ) as sell:
-        mapping = await sell.get_deal_custom_fields_mapping()
-        id_to_name = {str(m.get("id")): m.get("name") for m in mapping if m.get("id") and m.get("name")}
-        id_to_search = {str(m.get("id")): m.get("search_api_id") for m in mapping if m.get("id") and m.get("search_api_id")}
+    async with SellClient(settings.sell_base_url, settings.sell_access_token, settings.timeout_s) as sell:
+        deals_by_id = {}
+        for sid in cfg.stage_ids:
+            deals = await sell.list_deals_by_stage(int(sid), per_page=settings.per_page)
+            for d in deals:
+                did = d.get("id")
+                if did is not None:
+                    deals_by_id[int(did)] = d
 
-        fecha_search = id_to_search.get("2622657")
-        if not fecha_search:
-            raise RuntimeError("No pude resolver search_api_id de custom field 2622657 (FECHA DE CIRUGÍA)")
-
-        needed_cf_ids = [
-            "2622657",
-            "2705361",
-            "2705362",
-            "2705363",
-            "2705163",
-            "2705188",
-            "2705189",
-            "2705365",
-            "2712466",
-            "2712467",
-        ]
-        projection = ["id", "stage_id"]
-        for cid in needed_cf_ids:
-            sa = id_to_search.get(cid)
-            if sa:
-                projection.append(sa)
-
-        filter_obj = {
-            "and": [
-                {"filter": {"attribute": {"name": "stage_id"}, "parameter": {"any": cfg.stage_ids}}},
-                {
-                    "filter": {
-                        "attribute": {"name": fecha_search},
-                        "parameter": {"range": {"gte": start.isoformat(), "lte": end_inclusive.isoformat()}},
-                    }
-                },
-            ]
-        }
-
-        deals = await sell.search_deals(filter_obj=filter_obj, projection=projection, per_page=200)
-
-        normalized = []
-        for d in deals:
-            cf = d.get("custom_fields") or {}
-            merged = dict(cf)
-            for cid, name in id_to_name.items():
-                if cid in cf and name not in merged:
-                    merged[name] = cf[cid]
-            d2 = dict(d)
-            d2["custom_fields"] = merged
-            normalized.append(d2)
-
-    out = calc_month(cfg, normalized, year, month)
+    out = calc_month(cfg, list(deals_by_id.values()), year, month)
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0
 
