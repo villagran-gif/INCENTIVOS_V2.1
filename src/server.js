@@ -97,6 +97,6 @@ app.get('/api/monthly/:yearMonth', async (req, res) => {
 app.get('/', (req, res) => res.sendFile('index.html', { root: 'public' }));
 
 const port = Number(process.env.PORT || '8000');
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`INCENTIVOS Node escuchando en puerto ${port}`);
 });
