@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>INCENTIVOS - Resumen Mensual</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>INCENTIVOS · Resumen mensual</h1>
+
+    <div class="row">
+      <label for="month">Mes</label>
+      <input id="month" type="month" />
+      <button id="run">Generar</button>
+      <button id="download" disabled>Descargar CSV</button>
+    </div>
+
+    <div class="row2">
+      <div class="kpi"><div class="k">Incluidos</div><div class="v" id="kpiDeals">—</div></div>
+      <div class="kpi"><div class="k">Procesados</div><div class="v" id="kpiProcessed">—</div></div>
+      <div class="kpi"><div class="k">X-Cache</div><div class="v" id="kpiCache">—</div></div>
+    </div>
+
+    <pre id="out">{ "status": "listo" }</pre>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

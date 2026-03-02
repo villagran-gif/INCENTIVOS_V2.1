@@ -1,0 +1,16 @@
+{
+  "name": "INCENTIVOS - Resumen Mensual",
+  "author": {
+    "name": "INCENTIVOS"
+  },
+  "version": "1.0.0",
+  "frameworkVersion": "2.0",
+  "location": {
+    "sell": {
+      "top_bar": "assets/iframe.html"
+    }
+  },
+  "domainWhitelist": [
+    "incentivos-v2-1-1.onrender.com"
+  ]
+}
